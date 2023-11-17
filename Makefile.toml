@@ -3,9 +3,9 @@ CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
 PWD = {script = ["pwd"]}
 REPO_ROOT = "${PWD}"
 BUILDER_TAG = {script = ["cat icareslink-packages/tag.txt"] }
-UPSTREAM_REPO = "git@github.com:YiHeng2004/test-middleware.git"
+UPSTREAM_REPO = "git@github.com:YiHeng2004/test-middleware-linux.git"
 UPSTREAM_REV = "main"
-UPSTREAM_REPO_PATH = "${PWD}/git@github.com:YiHeng2004/test-middleware"
+UPSTREAM_REPO_PATH = "${PWD}/git@github.com:YiHeng2004/test-middleware-linux"
 RUSTUP_HOST = { script = ["rustup show | rg host | awk '{print $3}'"] }
 APP_VERSION = { script = ["grep version icareslink-packages/Cargo.toml | cut -d '\"' -f2"]}
 TARGET = { script = ["echo ${RUSTUP_HOST}"], condition = { env_not_set = ["TARGET"] } }
