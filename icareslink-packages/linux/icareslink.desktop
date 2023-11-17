@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=icareslink
+Comment=A Modern Middleware
+Exec=/opt/icareslink/icareslink
+Terminal=false
+Type=Application
+Categories=Network;Security;
+Icon=upvpn
+SingleMainWindow=true

@@ -1,0 +1,342 @@
+[env]
+CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
+PWD = {script = ["pwd"]}
+REPO_ROOT = "${PWD}"
+BUILDER_TAG = {script = ["cat icareslink-packages/tag.txt"] }
+UPSTREAM_REPO = "git@github.com:YiHeng2004/test-middleware.git"
+UPSTREAM_REV = "main"
+UPSTREAM_REPO_PATH = "${PWD}/git@github.com:YiHeng2004/test-middleware"
+RUSTUP_HOST = { script = ["rustup show | rg host | awk '{print $3}'"] }
+APP_VERSION = { script = ["grep version icareslink-packages/Cargo.toml | cut -d '\"' -f2"]}
+TARGET = { script = ["echo ${RUSTUP_HOST}"], condition = { env_not_set = ["TARGET"] } }
+STRIP = {script = ["([ ${TARGET} = \"aarch64-unknown-linux-gnu\" ] && echo \"--no-strip\") || echo \"--strip\""]}
+
+
+[tasks.release-build]
+workspace = false
+command = "cargo"
+args = ["build", "--release", "--target", "${TARGET}"]
+
+[tasks.deb]
+workspace = false
+command = "cargo"
+args = ["deb", "-p", "icareslink-packages", "--target", "${TARGET}", "${STRIP}", "${@}"]
+dependencies = ["oss"]
+
+[tasks.rpm]
+workspace = false
+command = "cargo"
+args = ["generate-rpm", "-p", "icareslink-packages", "--target", "${TARGET}", "${@}"]
+dependencies = ["oss", "release-build", "strip"]
+
+[tasks.rpm-no-build]
+workspace = false
+command = "cargo"
+args = ["generate-rpm", "-p", "icareslink-packages", "--target", "${TARGET}", "${@}"]
+dependencies = ["strip"]
+
+[tasks.strip]
+workspace = false
+script = '''
+CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-target}
+
+if [ "${STRIP:-}" = "--strip" ]; then
+    for file in icareslink icareslink-daemon
+    do
+        output="${CARGO_TARGET_DIR}/${TARGET}/release/${file}"
+        if [ -f "${output}" ]; then
+            strip "${output}"
+        fi
+    done
+fi
+'''
+
+[tasks.pkg]
+workspace = false
+script = '''
+tempdir=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
+cp -R icareslink-packages/macos ${tempdir}
+cp upvpn-assets/icons/icon.icns ${tempdir}/macos/pkg/root/Applications/icareslink.app/Contents/Resources
+cp icareslink-packages/icareslink-oss-licenses.html ${tempdir}/macos/pkg/root/Applications/icareslink.app/Contents/Resources
+cp target/${TARGET}/release/icareslink ${tempdir}/macos/pkg/root/Applications/icareslink.app/Contents/Resources
+cp target/${TARGET}/release/icareslink-daemon ${tempdir}/macos/pkg/root/Applications/icareslink.app/Contents/Resources
+rm ${tempdir}/macos/pkg/root/Applications/icareslink.app/Contents/MacOS/.gitkeep
+pushd ${tempdir}/macos
+./build.sh "${APP_VERSION}"
+popd
+mkdir -p target/pkg
+AARCH=$(uname -m)
+cp ${tempdir}/macos/icareslink-${APP_VERSION}.pkg target/pkg/icareslink-${APP_VERSION}-${AARCH}.pkg
+echo "Output: target/pkg/icareslink-${APP_VERSION}-${AARCH}.pkg"
+rm -r ${tempdir}
+'''
+dependencies = ["oss", "ui", "wglib", "release-build"]
+
+[tasks.setupupstream]
+workspace = false
+script_runner = "sh"
+script = '''
+#!/usr/bin/env bash
+mkdir -p ${UPSTREAM_REPO_PATH}
+
+if [ ! -d ${UPSTREAM_REPO_PATH}/.git ]; then
+    git clone ${UPSTREAM_REPO} ${UPSTREAM_REPO_PATH}
+    cd ${UPSTREAM_REPO_PATH} && git submodule update --init && cd -
+fi
+
+cd ${UPSTREAM_REPO_PATH}
+git fetch --all --tags
+git checkout ${UPSTREAM_REV}
+'''
+
+[tasks.wglib]
+workspace = false
+script_runner = "sh"
+script = '''
+#!/usr/bin/env bash
+cd ${UPSTREAM_REPO_PATH}
+./wireguard/build-wireguard-go.sh "${TARGET}"
+cp -r ${UPSTREAM_REPO_PATH}/build ${REPO_ROOT}
+'''
+dependencies = ["cargo-config", "setupupstream"]
+
+[tasks.winfw]
+workspace = false
+script_runner = "sh"
+script = '''
+#!/usr/bin/env bash
+output_dir=${REPO_ROOT}/windows/${TARGET}
+mkdir -p ${output_dir}
+cd ${UPSTREAM_REPO_PATH}
+IS_RELEASE=true CPP_BUILD_MODES=Release ./build-windows-modules.sh
+cp -r ${UPSTREAM_REPO_PATH}/windows/winfw/bin/x64-Release/ ${output_dir}
+'''
+
+[tasks.windows]
+workspace = false
+dependencies = ["oss", "cargo-config", "setupupstream", "release-build"]
+
+[tasks.windows-sign]
+workspace = false
+script_runner = "sh"
+script = '''
+#!/usr/bin/env bash
+set -eu
+./icareslink-packages/windows/sign.sh \
+    target/${TARGET}/release/icareslink.exe \
+    target/${TARGET}/release/icareslink-daemon.exe \
+    build/lib/${TARGET}/libwg.dll \
+    windows/${TARGET}/X64-Release/winfw.dll
+'''
+
+[tasks.only-msi]
+workspace = false
+script_runner = "sh"
+script = '''
+#!/usr/bin/env bash
+# Check if Wine is installed
+if ! command -v wine &> /dev/null; then
+    echo "Wine is not installed. Installing Wine..."
+    # Install Wine
+    # Add installation commands specific to your Linux distribution
+    # For example, for Ubuntu:
+    sudo dpkg --add-architecture i386
+    sudo apt update
+    sudo apt install wine64 wine32
+fi
+
+# Download and install WiX Toolset using Wine if not already installed
+if [ ! -f "wixtoolset.msi" ]; then
+    echo "Downloading WiX Toolset..."
+    wget -O wixtoolset.msi https://wixtoolset.org/releases/
+
+    echo "Installing WiX Toolset..."
+    # Install WiX Toolset using Wine
+    wine msiexec /i wixtoolset.msi
+fi
+
+# Move to the WiX Toolset installation directory within Wine
+WIX_PATH=~/.wine/drive_c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.11/bin
+
+# Add WiX Toolset to PATH if not already added
+if [[ ":$PATH:" != *":$WIX_PATH:"* ]]; then
+    export PATH="$WIX_PATH:$PATH"
+fi
+
+# Navigate to the directory containing your WiX files
+cd icareslink-packages/windows
+
+# Execute the WiX Toolset commands
+candle -ext WixUtilExtension -dAppVersion=${APP_VERSION} -out icareslink.wixobj -arch x64 icareslink.wsx
+light -ext WixUtilExtension -dAppVersion=${APP_VERSION} -out icareslink-x64-${APP_VERSION}.msi icareslink.wixobj
+'''
+
+[tasks.sign-msi]
+workspace = false
+script_runner = "sh"
+script = '''
+#!/usr/bin/env bash
+set -eu
+./icareslink-packages/windows/sign.sh icareslink-packages/windows/icareslink-x64-${APP_VERSION}.msi
+'''
+
+[tasks.msi]
+workspace = false
+dependencies = ["windows", "windows-sign", "only-msi", "sign-msi"]
+
+[tasks.cargo-config]
+workspace = false
+script_runner = "sh"
+script = '''
+#!/usr/bin/env bash
+root_dir=$(pwd)
+mkdir -p ${root_dir}/.cargo
+cp ${root_dir}/icareslink-packages/cargo-config.toml ${root_dir}/.cargo/config
+sd __REPO_ROOT__ "${root_dir}" ${root_dir}/.cargo/config
+'''
+
+# [tasks.ui]
+# workspace = false
+# script_runner = "sh"
+# script = '''
+# #!/usr/bin/env bash
+# cd icareslink-ui
+# npm install
+# npm run build
+# '''
+
+[tasks.volumes-for-build]
+workspace = false
+script = '''
+docker volume rm icareslink-app-builder || true
+docker volume create icareslink-app-builder-cargo-git
+docker volume create icareslink-app-builder-cargo-registry
+docker volume create icareslink-app-builder-cargo-target
+docker volume create icareslink-app-builder-go
+docker volume create icareslink-app-builder
+'''
+
+[tasks.clear-and-copy-source]
+workspace = false
+script = '''
+
+docker run --rm -v ${PWD}:/source \
+    -v icareslink-app-builder:/build \
+    ghcr.io/icareslink/icareslink-app-builder:${BUILDER_TAG} \
+        cp -r \
+        /source/upvpn-assets \
+        /source/icareslink-cli \
+        /source/icareslink-config \
+        /source/icareslink-controller \
+        /source/icareslink-daemon \
+        /source/icareslink-entity \
+        /source/icareslink-migration \
+        /source/icareslink-packages \
+        /source/icareslink-server \
+        /source/icareslink-types \
+        /source/Cargo.toml \
+        /source/Cargo.lock \
+        /source/about.toml \
+        /source/Makefile.toml \
+        /source/.dockerignore \
+        /build/
+
+docker run --rm  \
+    -v icareslink-app-builder:/build \
+    ghcr.io/icareslink/icareslink-app-builder:${BUILDER_TAG} chown -R root:root .
+'''
+
+[tasks.builder-shell]
+workspace = false
+command = "docker"
+args = [
+    "run",
+    "--rm",
+    "-it",
+    "-v", "icareslink-app-builder-cargo-git:/root/.cargo/git",
+    "-v", "icareslink-app-builder-cargo-registry:/root/.cargo/registry",
+    "-v", "icareslink-app-builder-cargo-target:/root/.cargo/target",
+    "-v", "icareslink-app-builder-go:/root/go",
+    "-v", "icareslink-app-builder:/build",
+    # To clone github repo using ssh
+    "-v", "${HOME}/.ssh:/root/.ssh",
+    "-e", "CARGO_NET_GIT_FETCH_WITH_CLI=true",
+    "-e", "TARGET=${TARGET}",
+    # tag created by builder task
+    "ghcr.io/icareslink/icareslink-app-builder:${BUILDER_TAG}",
+    "bash"
+]
+dependencies = ["volumes-for-build", "clear-and-copy-source"]
+
+[tasks.linux-packages]
+workspace = false
+# only need to build once for packaging both
+dependencies = ["deb", "rpm-no-build"]
+
+[tasks.build-in-container]
+workspace = false
+command = "docker"
+args = [
+    "run",
+    "--rm",
+    "-it",
+    "-v", "icareslink-app-builder-cargo-git:/root/.cargo/git",
+    "-v", "icareslink-app-builder-cargo-registry:/root/.cargo/registry",
+    "-v", "icareslink-app-builder-cargo-target:/root/.cargo/target",
+    "-v", "icareslink-app-builder-go:/root/go",
+    "-v", "icareslink-app-builder:/build",
+    # To clone github repo using ssh
+    "-v", "${HOME}/.ssh:/root/.ssh",
+    "-e", "CARGO_NET_GIT_FETCH_WITH_CLI=true",
+    "-e", "TARGET=${TARGET}",
+    # tag created by builder task
+    "ghcr.io/icareslink/icareslink-app-builder:${BUILDER_TAG}",
+    "cargo",
+    "make",
+    "-e", "TARGET=${TARGET}",
+    "linux-packages",
+]
+dependencies = ["volumes-for-build", "clear-and-copy-source"]
+
+[tasks.output-dir]
+workspace = false
+script = '''
+echo "TARGET: ${TARGET}"
+mkdir -p ${PWD}/dist/${TARGET}
+'''
+
+[tasks.linux]
+workspace = false
+command = "docker"
+args = [
+    "run",
+    "--rm",
+    "-it",
+    "-v", "icareslink-app-builder-cargo-target:/root/.cargo/target",
+    "-v", "${PWD}/dist:/dist",
+    # tag created by builder task
+    "ghcr.io/icareslink/icareslink-app-builder:${BUILDER_TAG}",
+    "cp", "-r",
+    "/root/.cargo/target/${TARGET}/debian", "/root/.cargo/target/${TARGET}/generate-rpm",
+    "/dist/${TARGET}",
+]
+dependencies = ["output-dir", "build-in-container"]
+
+[tasks.icon]
+workspace = false
+script = '''
+cargo tauri icon -o ../upvpn-assets/icons  ../upvpn-assets/app-icon.png
+'''
+
+[tasks.oss]
+workspace = false
+script_runner = "sh"
+script = '''
+#!/usr/bin/env bash
+set -eu
+cargo about generate icareslink-packages/icareslink-oss-licenses-rust.hbs > icareslink-packages/icareslink-oss-licenses-rust.html
+
+cat icareslink-packages/icareslink-oss-licenses-header.hbs > icareslink-packages/icareslink-oss-licenses.html
+cat icareslink-packages/icareslink-oss-licenses-rust.html >> icareslink-packages/icareslink-oss-licenses.html
+cat icareslink-packages/icareslink-oss-licenses-footer.hbs >> icareslink-packages/icareslink-oss-licenses.html
+'''

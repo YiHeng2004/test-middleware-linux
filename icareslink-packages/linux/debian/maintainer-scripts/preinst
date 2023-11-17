@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Stop daemon and UI
+
+if which systemctl &> /dev/null; then
+    if systemctl status icareslink-daemon &> /dev/null; then
+        systemctl stop icareslink-daemon.service
+        systemctl disable icareslink-daemon.service
+        cp /var/log/icareslink/icareslink-daemon.log /var/log/icareslink/previous-icareslink-daemon.log \
+            || echo "Failed to copy previous daemon log file"
+    fi
+fi
+
+pkill -x "icareslink" || true
+
+#DEBHELPER#
