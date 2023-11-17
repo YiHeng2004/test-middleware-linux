@@ -3,11 +3,11 @@ syntax = "proto3";
 package icareslink.controller;
 
 import "google/protobuf/empty.proto";
-// import "google/protobuf/wrappers.proto";
+//import "google/protobuf/wrappers.proto";
 import "google/protobuf/timestamp.proto";
 
 service ControllerService {
-    // // Locations served
+    // Locations served
     // rpc GetLocations(google.protobuf.Empty) returns (Locations);
     // rpc RecentLocations(google.protobuf.Empty) returns (Locations);
 
@@ -16,8 +16,7 @@ service ControllerService {
     // rpc AccountSignIn(SignInRequest) returns (google.protobuf.Empty);
     // rpc AccountSignOut(google.protobuf.Empty) returns (google.protobuf.Empty);
     // rpc GetAccountInfo(google.protobuf.Empty) returns (AccountInfo);
-
-    rpc print_hello(Message) returns (google.protobuf.Empty);//returns (PrintHello)
+    rpc print_hello(Message) returns (google.protobuf.Empty);
 
     // // Control VPN
     // rpc ConnectVpn(Location) returns (VpnStatus);
@@ -32,9 +31,8 @@ service ControllerService {
     // rpc LatestAppVersion(google.protobuf.Empty) returns (google.protobuf.StringValue);
 
     // Events
-    // rpc WatchEvents(google.protobuf.Empty) returns (stream DaemonEvent);
+    //rpc WatchEvents(google.protobuf.Empty) returns (stream DaemonEvent);
 }
-
 message Message {
     string message = 1;
   }
@@ -120,8 +118,8 @@ message Location {
     string country_code = 3;
     string city = 4;
     string city_code = 5;
-    // optional string state = 6;
-    // optional string state_code = 7;
+    optional string state = 6;
+    optional string state_code = 7;
 }
 
 message DaemonEvent {
@@ -129,8 +127,4 @@ message DaemonEvent {
         VpnStatus vpn_status = 1;
         Notification notification = 2;
     }
-}
-
-message PrintHello {
-    string hello = 1;
 }

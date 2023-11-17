@@ -101,10 +101,10 @@ pub type ServiceResult<T> = std::result::Result<Response<T>, Status>;
 //     UnboundedReceiverStream<Result<upvpn_controller::proto::VpnStatus, Status>>;
 
 // pub type DaemonEventsListenerSender =
-//     tokio::sync::mpsc::UnboundedSender<Result<icareslink_controller::proto::DaemonEvent, Status>>;
+//     tokio::sync::mpsc::UnboundedSender<Result<upvpn_controller::proto::DaemonEvent, Status>>;
 
 // pub type DaemonEventsListenerReceiver =
-//     UnboundedReceiverStream<Result<icareslink_controller::proto::DaemonEvent, Status>>;
+//     UnboundedReceiverStream<Result<upvpn_controller::proto::DaemonEvent, Status>>;
 
 #[tonic::async_trait]
 impl ControllerService for ControllerServiceImpl {
@@ -170,7 +170,7 @@ impl ControllerService for ControllerServiceImpl {
     //     todo!()
     // }
 
-    //// Control VPN
+    // /// Control VPN
     // async fn connect_vpn(
     //     &self,
     //     req: Request<upvpn_controller::proto::Location>,
@@ -228,7 +228,7 @@ impl ControllerService for ControllerServiceImpl {
     //         .map_err(map_daemon_error)
     // }
 
-    // // Versions and Updates
+    // Versions and Updates
     // async fn latest_app_version(&self, _: Request<()>) -> ServiceResult<String> {
     //     let (tx, rx) = oneshot::channel();
     //     self.send_command_to_daemon(DaemonCommand::LatestAppVersion(tx))?;
@@ -239,7 +239,7 @@ impl ControllerService for ControllerServiceImpl {
     //         .map_err(map_daemon_error)
     // }
 
-    //// Event stream
+    // /// Event stream
     // async fn watch_events(&self, _: Request<()>) -> ServiceResult<Self::WatchEventsStream> {
     //     let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
 

@@ -252,57 +252,57 @@ impl Daemon {
             if let DaemonEvent::Shutdown = event {
                 break;
             }
-            // self.handle_event(event).await;
+            self.handle_event(event).await;
         }
-        // self.handle_shutdown().await;
+        self.handle_shutdown().await;
     }
 
-    // async fn handle_shutdown(mut self) {
-    //     tracing::info!("handling shutdown ...");
+    async fn handle_shutdown(mut self) {
+        tracing::info!("handling shutdown ...");
 
-    //     // if any, disconnect and end existing session
-    //     if let Err(err) = self.on_disconnect_inner("daemon shutdown".into()).await {
-    //         tracing::error!("when ending session during shutdown: {err}");
-    //     };
+        // if any, disconnect and end existing session
+        // if let Err(err) = self.on_disconnect_inner("daemon shutdown".into()).await {
+        //     tracing::error!("when ending session during shutdown: {err}");
+        // };
 
-    //     // wait for tunnel state machine to stop
-    //     self.tunnel_state_machine_handle.try_join().await;
+        // wait for tunnel state machine to stop
+        // self.tunnel_state_machine_handle.try_join().await;
 
-    //     if let Err(err) = self.vpn_session_handler.shutdown().await {
-    //         tracing::error!("error when vpn session handler was shutting down: {err}");
-    //     };
+        // if let Err(err) = self.vpn_session_handler.shutdown().await {
+        //     tracing::error!("error when vpn session handler was shutting down: {err}");
+        // };
 
-    //     // let ControllerServerAndEventBroadcaster {
-    //     //     // events_subscribers,
-    //     //     controller_server_handle,
-    //     // } = self.controller_server_and_event_broadcaster;
+        // let ControllerServerAndEventBroadcaster {
+        //     // events_subscribers,
+        //     controller_server_handle,
+        // } = self.controller_server_and_event_broadcaster;
 
-    //     // let mut guard = events_subscribers.write().await;
-    //     // guard.clear();
+        // let mut guard = events_subscribers.write().await;
+        // guard.clear();
 
-    //     // drop(guard);
-    //     // drop(events_subscribers);
+        // drop(guard);
+        // drop(events_subscribers);
 
-    //     // let _ = tokio::join!(controller_server_handle);
-    //     // device handler last as controller depends on it for auth
-    //     if let Err(err) = self.device_handler.shutdown().await {
-    //         tracing::error!("error when device handler was shutting down: {err}");
-    //     };
-    // }
+        // let _ = tokio::join!(controller_server_handle);
+        // device handler last as controller depends on it for auth
+        // if let Err(err) = self.device_handler.shutdown().await {
+        //     tracing::error!("error when device handler was shutting down: {err}");
+        // };
+    }
 
-    // async fn handle_event(&mut self, event: DaemonEvent) {
-    //     tracing::debug!("daemon event: {event}");
-    //     match event {
-    //         DaemonEvent::Command(command) => self.handle_command(command).await,
-    //         DaemonEvent::VpnSessionStatus(vpn_session_status) => {
-    //             self.handle_vpn_session_status(vpn_session_status).await
-    //         }
-    //         DaemonEvent::TunnelStateTransition(transition) => {
-    //             self.handle_tunnel_state_transition(transition).await
-    //         }
-    //         DaemonEvent::Shutdown => {}
-    //     }
-    // }
+    async fn handle_event(&mut self, event: DaemonEvent) {
+        tracing::debug!("daemon event: {event}");
+        match event {
+            DaemonEvent::Command(command) => self.handle_command(command).await,
+            // DaemonEvent::VpnSessionStatus(vpn_session_status) => {
+            //     self.handle_vpn_session_status(vpn_session_status).await
+            // }
+            // DaemonEvent::TunnelStateTransition(transition) => {
+            //     self.handle_tunnel_state_transition(transition).await
+            // }
+            DaemonEvent::Shutdown => {}
+        }
+    }
 
     // async fn handle_tunnel_state_transition(&mut self, transition: TunnelStateTransition) {
     //     tracing::info!("tunnel transition: {transition:?}");

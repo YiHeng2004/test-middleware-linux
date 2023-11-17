@@ -17,7 +17,6 @@ pub struct Testing {
 #[async_trait]
 impl RunCommand for Testing {
     async fn run(self) -> Result<(), CliError> {
-
         let message = match self.message {
             Some(message) => message,
             None => Input::<String>::with_theme(&ColorfulTheme::default())
