@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package icareslink.controller;
 
-import "google/protobuf/empty.proto";
-//import "google/protobuf/wrappers.proto";
+//import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
 import "google/protobuf/timestamp.proto";
 
 service ControllerService {
@@ -16,7 +16,7 @@ service ControllerService {
     // rpc AccountSignIn(SignInRequest) returns (google.protobuf.Empty);
     // rpc AccountSignOut(google.protobuf.Empty) returns (google.protobuf.Empty);
     // rpc GetAccountInfo(google.protobuf.Empty) returns (AccountInfo);
-    rpc print_hello(Message) returns (google.protobuf.Empty);
+    rpc print_hello(Message) returns (google.protobuf.StringValue);
 
     // // Control VPN
     // rpc ConnectVpn(Location) returns (VpnStatus);
@@ -36,6 +36,10 @@ service ControllerService {
 message Message {
     string message = 1;
   }
+
+message HelloResponse {
+    string helloresponse = 1;
+}
 
 message SignInRequest {
     string email = 1;

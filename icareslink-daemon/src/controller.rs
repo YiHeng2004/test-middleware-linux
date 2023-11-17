@@ -148,7 +148,7 @@ impl ControllerService for ControllerServiceImpl {
     //         .map_err(map_daemon_error)
     // }
 
-    async fn print_hello(&self, req: Request<Message>) -> ServiceResult<()> {
+    async fn print_hello(&self, req: Request<Message>) -> ServiceResult<String> {
         let (tx, rx) = oneshot::channel(); 
         self.send_command_to_daemon(DaemonCommand::PrintHello(tx,req.into_inner().message))?;
         self.wait_for_result(rx)
@@ -156,6 +156,11 @@ impl ControllerService for ControllerServiceImpl {
             .map(Response::new)
             .map_err(map_daemon_error)
     }
+    //self.wait_for_result(rx)
+    //         .await?
+    //         .map(upvpn_controller::proto::VpnStatus::from)
+    //         .map(Response::new)
+    //         .map_err(map_daemon_error)
 
     // async fn account_sign_out(&self, _: Request<()>) -> ServiceResult<()> {
     //     let (tx, rx) = oneshot::channel();

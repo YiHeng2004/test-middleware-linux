@@ -30,8 +30,12 @@ impl RunCommand for Testing {
             .await
             .map_err(|_| CliError::DaemonUnavailable)?;
 
-        client
-            .print_hello(Message {message}).await?;
+        let daemon_response = client
+            .print_hello(Message {message})
+            .await
+            .map(|res| res.into_inner())?;
+
+        println!("{}", style(&format!("The daemon response: {}", daemon_response)).green());
 
         Ok(())
     }

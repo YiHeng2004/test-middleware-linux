@@ -58,7 +58,7 @@ pub enum DaemonError {
 
 #[derive(Debug)]
 pub enum DaemonCommand {
-    PrintHello(ResponseTx<(), DaemonError>,String),
+    PrintHello(ResponseTx<String, DaemonError>,String),
     // IsAuthenticated(ResponseTx<bool, DaemonError>),
     // AccountSignIn(ResponseTx<(), DaemonError>, UserCredentials),
     // AccountSignOut(ResponseTx<(), DaemonError>),
@@ -391,10 +391,11 @@ impl Daemon {
         }
     }
 
-    async fn print_hello(&self, tx: ResponseTx<(), DaemonError>,message:String) {
-        println!("This is your message: {}",message);
+    async fn print_hello(&self, tx: ResponseTx<(String), DaemonError>,message:String) {
+        let responseMessage: String = message;
+        println!("This is your message: {}",responseMessage);
         tokio::spawn(async move {
-            Self::oneshot_send(tx, Ok(()), "on_print_hello");
+            Self::oneshot_send(tx, Ok((responseMessage)), "on_print_hello");
         });
     }
 
