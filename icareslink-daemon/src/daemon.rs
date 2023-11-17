@@ -58,7 +58,7 @@ pub enum DaemonError {
 
 #[derive(Debug)]
 pub enum DaemonCommand {
-    PrintHello(ResponseTx<(), DaemonError>),
+    PrintHello(ResponseTx<(), DaemonError>,String),
     // IsAuthenticated(ResponseTx<bool, DaemonError>),
     // AccountSignIn(ResponseTx<(), DaemonError>, UserCredentials),
     // AccountSignOut(ResponseTx<(), DaemonError>),
@@ -160,7 +160,7 @@ impl Display for DaemonEvent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let event: String = match self {
             DaemonEvent::Command(command) => match command {
-                DaemonCommand::PrintHello(_) => "PrintHello".into(),
+                DaemonCommand::PrintHello(_,message) => "PrintHello".into(),
                 // DaemonCommand::IsAuthenticated(_) => "IsAuthenticated".into(),
                 // DaemonCommand::AccountSignIn(_, user_creds) => {
                 //     format!("AccountSignIn: {}", user_creds.email)
@@ -374,7 +374,7 @@ impl Daemon {
 
     async fn handle_command(&mut self, command: DaemonCommand) {
         match command {
-            DaemonCommand::PrintHello(tx) => self.print_hello().await,
+            DaemonCommand::PrintHello(tx,message) => self.print_hello(tx,message).await,
             // DaemonCommand::IsAuthenticated(tx) => self.is_authenticated(tx).await,
             // DaemonCommand::AccountSignIn(tx, auth_input) => {
             //     self.on_account_sign_in(tx, auth_input).await
@@ -391,8 +391,11 @@ impl Daemon {
         }
     }
 
-    async fn print_hello(&self){
-        println!("Hello!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    async fn print_hello(&self, tx: ResponseTx<(), DaemonError>,message:String) {
+        println!("This is your message: {}",message);
+        tokio::spawn(async move {
+            Self::oneshot_send(tx, Ok(()), "on_print_hello");
+        });
     }
 
     // async fn on_latest_app_version(&self, tx: ResponseTx<String, DaemonError>) {

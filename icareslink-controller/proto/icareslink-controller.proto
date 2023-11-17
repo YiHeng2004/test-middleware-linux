@@ -17,7 +17,7 @@ service ControllerService {
     // rpc AccountSignOut(google.protobuf.Empty) returns (google.protobuf.Empty);
     // rpc GetAccountInfo(google.protobuf.Empty) returns (AccountInfo);
 
-    rpc print_hello(google.protobuf.Empty) returns (google.protobuf.Empty);//returns (PrintHello)
+    rpc print_hello(Message) returns (google.protobuf.Empty);//returns (PrintHello)
 
     // // Control VPN
     // rpc ConnectVpn(Location) returns (VpnStatus);
@@ -34,6 +34,10 @@ service ControllerService {
     // Events
     // rpc WatchEvents(google.protobuf.Empty) returns (stream DaemonEvent);
 }
+
+message Message {
+    string message = 1;
+  }
 
 message SignInRequest {
     string email = 1;

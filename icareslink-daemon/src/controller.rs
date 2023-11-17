@@ -4,7 +4,7 @@ use tokio::{sync::oneshot, task::JoinHandle};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{Request, Response, Status};
 use icareslink_controller::{
-    proto::{AccountInfo, Locations, Notifications, SignInRequest, VpnStatus},
+    proto::{AccountInfo, Locations, Notifications, SignInRequest, VpnStatus, Message},
     spawn_grpc_server, ControllerError, ControllerService,
 };
 // use upvpn_migration::DbErr;
@@ -148,9 +148,9 @@ impl ControllerService for ControllerServiceImpl {
     //         .map_err(map_daemon_error)
     // }
 
-    async fn print_hello(&self, _: Request<()>) -> ServiceResult<()> {
-        let (tx, rx) = oneshot::channel();
-        self.send_command_to_daemon(DaemonCommand::PrintHello(tx))?;
+    async fn print_hello(&self, req: Request<Message>) -> ServiceResult<()> {
+        let (tx, rx) = oneshot::channel(); 
+        self.send_command_to_daemon(DaemonCommand::PrintHello(tx,req.into_inner().message))?;
         self.wait_for_result(rx)
             .await?
             .map(Response::new)
